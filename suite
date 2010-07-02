@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby 
+
+require 'benchmark'
+
+class Suite
+  def initialize(orm, iterations)
+    load "#{orm}/base.rb"
+    @orm, @iterations = orm, iterations
+    @suite= {
+      :create   => lambda { Thing.create(:val => 'pen') },
+      :read     => lambda { Thing.last.val },
+      :update   => lambda do |thing|
+        if @orm == 'ar'
+          thing.update_attribute(:val, "notapen")
+        else
+          thing.update(:val => "notapen")
+        end
+      end,
+      :destroy  => lambda { |thing| thing.destroy }
+    }
+  end
+
+  def run
+    @suite.each do |test, method|
+      puts "=========== Starting the #{test} tests ==========="
+      Benchmark.bm do |bm|
+        if [:create, :read].include?(test)
+          bm.report {@iterations.times {@suite[test].call}}
+        else
+          thing= Thing.create(:val => 'pen')
+          bm.report {@iterations.times {@suite[test].call(thing)}}
+        end
+      end
+      puts "=========== Ending the #{test} tests ==========="
+    end
+    cleanup
+  end
+
+  def cleanup
+  end
+end
+
+if !['dm','ar'].include?(ARGV[0]) or ARGV[1].nil?
+  puts "ORMSuite: Usage: ./suite [ar|dm] <iterations>"
+else
+  puts "*********** Starting the #{ARGV[0]} suite ***********"
+  Suite.new(ARGV[0], ARGV[1].to_i).run
+  puts "*********** Ending the #{ARGV[0]} suite ***********"
+end

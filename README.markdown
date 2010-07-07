@@ -1,5 +1,4 @@
-== To run the benchmarks yourself:
-== My Results
+# My Results
 
     # With 100 iterations
 
